@@ -177,9 +177,9 @@ async def back_to_price(callback: CallbackQuery):
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from main import *
+# test
 
-
-ADMIN_CHAT_ID = ("995712956")
+ADMIN_CHAT_ID = ("1782718756")  # вставляете свой chat id
 bot_instance: Bot = None  # Глобальная переменная для хранения экземпляра бота
 
 
