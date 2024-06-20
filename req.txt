@@ -13,8 +13,8 @@ idna==3.7
 magic-filter==1.0.12
 multidict==6.0.5
 pydantic==2.7.2
-pydantic-core==2.18.3
+pydantic_core==2.18.3
 PyMySQL==1.1.1
 SQLAlchemy==2.0.30
-typing-extensions==4.12.1
+typing_extensions==4.12.1
 yarl==1.9.4

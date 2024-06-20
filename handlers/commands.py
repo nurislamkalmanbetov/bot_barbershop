@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot, Dispatcher
 from aiogram.filters import Command, CommandStart 
 from aiogram.types import (
     Message, ReplyKeyboardMarkup, KeyboardButton, 
@@ -19,13 +19,15 @@ async def start(message: Message):
         "/price - Расценки \n"
         "/courses_barber - Курсы на барбера \n"
         "/feed_back - Отзывы \n"
-        "/masters - Мастера - Барберы"
+        "/masters - Мастера - Барберы \n"
+        "/zapisatsya - Записаться на стрижу"
     )
     kb = [
         [KeyboardButton(text="/address"), KeyboardButton(text="/price")],
         [KeyboardButton(text="/contacts"), KeyboardButton(text="/courses_barber")],
         [KeyboardButton(text="/grafic"), KeyboardButton(text="/feed_back")],
-        [KeyboardButton(text="/masters"), KeyboardButton(text="/end")]
+        [KeyboardButton(text="/masters"), KeyboardButton(text="/zapisatsya")],
+        [KeyboardButton(text="/end")],
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
     await message.answer(description, reply_markup=keyboard)
@@ -170,3 +172,58 @@ async def send_leo_picture(callback:CallbackQuery):
 async def back_to_price(callback: CallbackQuery):
     await callback.message.delete()  # Удаляем текущее сообщение
     await price(callback.message)   # Отправляем сообщение с прайс-листом
+
+
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+from main import *
+
+
+ADMIN_CHAT_ID = ("995712956")
+bot_instance: Bot = None  # Глобальная переменная для хранения экземпляра бота
+
+
+class Form(StatesGroup):
+    name = State()  # Состояние для ФИО
+    phone_number = State()  # Состояние для номера телефона
+
+
+def setup_routers(dispatcher: Dispatcher, bot: Bot):
+    global bot_instance
+    bot_instance = bot  # Сохраняем экземпляр бота для использования в хэндлерах
+    dispatcher.include_router(router)
+
+
+@router.message(Command("zapisatsya"))
+async def cmd_zapisatsya(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите ваше ФИО:")
+    await state.set_state(Form.name)
+
+@router.message(Form.name)
+async def process_name(message: Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    await message.answer("Спасибо! Теперь введите ваш номер телефона:")
+    await state.set_state(Form.phone_number)
+
+
+@router.message(Form.phone_number)
+async def process_phone_number(message: Message, state: FSMContext):
+    await state.update_data(phone_number=message.text)
+    data = await state.get_data()
+
+    # Отправляем сообщение пользователю
+    await message.answer(
+        f"Спасибо за регистрацию!\nФИО: {data['name']}\nНомер телефона: {data['phone_number']}"
+    )
+    
+    # Отправляем сообщение администратору
+    user = message.from_user
+    admin_message = (
+        f"Новый клиент! Позвоните ему! \n"
+        f"ФИО: {data['name']}\n"
+        f"Номер телефона: {data['phone_number']}"
+    )
+    # await message.answer(ADMIN_CHAT_ID, admin_message)
+    await bot_instance.send_message(ADMIN_CHAT_ID, admin_message)
+
+    await state.clear()
